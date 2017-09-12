@@ -1,0 +1,92 @@
+---
+title: "Regression Models Course Project"
+author: "Sarah Thiesen"
+date: "10 September 2017"
+output: pdf_document
+---
+
+#Introduction
+In this report I will take a look at the mtcars dataset and analyze whether automatic or manual transmission is better for MPG. After an exploratory data analysis, I will perform a linear regression analysis in which "am" (transmission; automatic is coded as 0 and manual as 1) is the independent variable and "mpg" (miles per gallon) is the dependent variable. Other than transmission and MPG, the mtcars dataset includes 9 other variables that might also affect MPG.
+
+#Exploratory Data Analysis
+
+First I will perform some exploratory data analysis and create a boxplot to compare the MPG of cars with automatic (am = 0) and manual (am = 1) transmission.
+
+```{r, message = FALSE}
+data(mtcars)
+library(ggplot2); library(broom); library(car); library(dplyr)
+mtcars %>% group_by(am) %>% summarize(mean = mean(mpg), sd = sd(mpg)) %>% as.data.frame()
+```
+
+It would seem like cars that have manual transmission have higher mean MPG, but also a higher variation. A boxplot to illustrate this can be found in the appendix. Plotting the relationship between weight and MPG while differentiating between automatic and manual transmission shows that while higher weight is associated with less MPG, the relationship is a bit different for the two groups. This plot can be found in the appendix as well.  
+
+#Model Selection
+
+In a first regression model that only includes "am" as an independent variable, manual transmission seems to result in higher mpg. 
+
+```{r}
+options(scipen=999) #Turn off scientific notation
+fit1 <- lm(mpg ~ factor(am), data = mtcars)
+tidy(fit1)
+```
+Cars with automatic transmission have a mean MPG of `r round(coefficients(fit1)[1], digits = 3)`. MPG of cars with manual transmission is higher by `r round(coefficients(fit1)[2], digits = 3)`. The effect is highly significant with a p value of `r round(tidy(fit1)[2, 5], digits = 4)` (although I'm not sure how interpretable this is since I don't know if the sample is random). About one third of the variation in MPG can be explained by the variation in transmission (R² = `r round(glance(fit1)[1], digits = 4)`).\newline
+
+Of course, other variables other than transmission could also be affecting MPG. Now I don't know anything about cars, but of the 9 other variables in the mtcars dataset, I imagine that gross horsepower (hp), the weight of the car in 1000 lbs (wt) and the number of cylinders (cyl) could have an effect on MPG. I introduce the three variables gradually in a stepwise regression and create an analysis of variance (anova) table to test whether or not these variables can help explain variance and thus should be included in the model. After some trial and error, I've also decided to include an interaction term between transmission and weight.
+
+```{r}
+fit2 <- lm(mpg ~ factor(am) + wt, data = mtcars)
+fit3 <- lm(mpg ~ factor(am) + wt + factor(am) * wt, data = mtcars)
+fit4 <- lm(mpg ~ factor(am) + wt + factor(am) * wt + hp, data = mtcars)
+fit5 <- lm(mpg ~ factor(am) + wt + factor(am) * wt + hp + cyl, data = mtcars)
+
+anovas <- anova(fit1, fit2, fit3, fit4, fit5)
+```
+  
+The anova table (which can be found in the appendix on page 4) shows that the inclusion of the variables horsepower (hp), weight (wt) and the interaction term results in a significant decrease in variance, but the inclusion of the number of cylinders (cyl) does not. Model 4, which controls for horsepower and weight as well as the interaction between transmission and weight, seems to be the most appropriate model. \newline
+
+Looking at the summary of model 3 (page 4), we can see that cars with manual transmission still have higher MPG. This effect remains significant even after controlling for the other variables (p = `r round(tidy(fit4)[2, 5], digits = 3)`). An increase in horsepower (p = `r round(tidy(fit4)$p.value[4], digits = 3)`) or weight (p = `r round(tidy(fit4)$p.value[3], digits = 3)`) both result in lower MPG. The interaction term shows that the MPG of cars with manual transmission decreases more as weight increases than that of cars with automatic transmission. R² has increased from `r round(glance(fit1)[1], digits = 4)` in the first model to `r round(glance(fit4)[2], digits = 4)` in model 4, which means the new model is a lot better at explaining variation in MPG.
+
+```{r}
+data.frame(intercept = c(coef(fit1)[1], coef(fit4)[1]), am = c(coef(fit1)[2], 
+  coef(fit4)[2]), wt = c(NA, coef(fit4)[3]), hp = c(NA, coef(fit4)[4]), am_wt = c(NA, 
+  coef(fit4)[5]), row.names = c("fit1", "fit4"))
+```
+
+#Regression Diagnostics
+
+Diagnostic plots can be found in the appendix. In the residuals vs fitted plot, the residuals are about equally distributed around a vaguely straight line. It seems unlikely that there are non-linear patterns in the data. In the Q-Q plot, the residuals deviate slightly from the line. It might be that the residuals are not normally distributed. The scale-location plot does not show many abnormalities, which indicates that the variance is about equal (homoscedastic). The residuals vs leverage plot shows that the Maserati Bora, and to a lesser extent the Chrysler Imperial, are influential outliers with high leverage.
+
+#Conclusion
+
+Cars with manual transmission generally have higher MPG, even when controlling for weight and gross horsepower. However, I don't know if this relationship is causaul, so I hesitate to give a general recommendation.
+
+\newpage
+
+#Appendix
+
+##Exploratory plots
+
+```{r, fig.height = 3}
+m <- ggplot(mtcars, aes(factor(am), mpg))
+m + geom_boxplot() + expand_limits(y = 0)
+
+g <- ggplot(mtcars, aes(wt, mpg))
+g + geom_point() + facet_grid(. ~ factor(am)) + geom_smooth(method = "lm")
+```
+\newpage
+
+##Anova table
+```{r}
+anovas
+```
+
+##Summary of model 4
+```{r}
+summary(fit4)
+```
+\newpage
+
+##Regression diagnostics
+```{r, fig.height = 4}
+plot(fit4)
+```
