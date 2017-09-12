@@ -5,8 +5,8 @@ date: "10 September 2017"
 output: pdf_document
 ---
 
-#Introduction
-In this report I will take a look at the mtcars dataset and analyze whether automatic or manual transmission is better for MPG. After an exploratory data analysis, I will perform a linear regression analysis in which "am" (transmission; automatic is coded as 0 and manual as 1) is the independent variable and "mpg" (miles per gallon) is the dependent variable. Other than transmission and MPG, the mtcars dataset includes 9 other variables that might also affect MPG.
+#Summary
+In this report have taken a look at the mtcars dataset and analyzed whether automatic or manual transmission is better for MPG. After an exploratory data analysis, I performed a linear regression analysis in which "am" (transmission; automatic is coded as 0 and manual as 1) is the independent variable and "mpg" (miles per gallon) is the dependent variable. Other than transmission and MPG, the mtcars dataset includes 9 other variables that might also affect MPG. I selected a model that other than transmission also accounts for weight and gross horsepower. Even after controlling for these variables, transmission has an effect on MPG. Cars with manual transmission generally have higher MPG. However I hesitate to make a recommendation since I don't know if this effect is causal.
 
 #Exploratory Data Analysis
 
